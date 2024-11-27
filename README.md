@@ -8,7 +8,7 @@
 执行如下代码进行安装
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/boosoyz/mtproto/main/mtg.sh)
+bash <(curl -s -O https://raw.githubusercontent.com/boosoyz/mtproto/main/mtg.sh && chmod +x mtg.sh && ./mtg.sh)
 ```
 
 ## 卸载安装
