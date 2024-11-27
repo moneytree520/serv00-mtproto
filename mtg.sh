@@ -1,0 +1,104 @@
+#!/bin/bash
+
+# 获取当前脚本的绝对路径，并设置 mtg 目录和日志路径
+BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
+MTG_DIR="${BASE_DIR}/mtg"
+LOG_FILE="${MTG_DIR}/mtg.log"
+KEEP_ALIVE_LOG="${MTG_DIR}/keep_alive.log"
+
+# 创建 mtg 目录（如果不存在）
+if [ ! -d "${MTG_DIR}" ]; then
+    mkdir -p "${MTG_DIR}"
+    echo "已创建 mtg 目录: ${MTG_DIR}"
+else
+    echo "mtg 目录已存在: ${MTG_DIR}"
+fi
+
+# 进入 mtg 目录
+cd "${MTG_DIR}" || { echo "进入 mtg 目录失败"; exit 1; }
+
+# 下载 mtg 可执行文件并赋予执行权限
+echo "正在下载 mtg 可执行文件..."
+curl -LO https://raw.githubusercontent.com/boosoyz/mtproto/main/mtg > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "下载失败，请检查网络连接。"
+    exit 1
+fi
+
+# 给 mtg 文件赋予执行权限
+chmod +x mtg
+if [ $? -ne 0 ]; then
+    echo "无法赋予执行权限。"
+    exit 1
+fi
+
+# 获取主机名并生成密钥
+host=$(hostname)
+secret=$(./mtg generate-secret --hex "$host" 2>/dev/null)
+if [ -z "$secret" ]; then
+    echo "生成密钥失败。"
+    exit 1
+fi
+
+# 让用户手动输入端口
+read -p "请输入 mtg 使用的端口号: " port
+
+# 检查输入的端口是否有效
+if [[ ! "$port" =~ ^[0-9]+$ || "$port" -lt 1024 || "$port" -gt 65535 ]]; then
+    echo "无效的端口号。请输入一个有效的端口（1024-65535）。"
+    exit 1
+fi
+
+mtpport="$port"
+echo "使用的端口为：$mtpport"
+
+# 创建 config.json 配置文件
+cat > config.json <<EOF
+{
+  "host": "$host",
+  "secret": "$secret",
+  "port": "$mtpport"
+}
+EOF
+
+# 启动 mtg 并在后台运行，完全隐藏输出
+nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${mtpport} ${secret} -c 8192 --prefer-ip="prefer-ipv6" > /dev/null 2>&1 &
+
+# 检查 mtg 是否启动成功
+sleep 3
+if pgrep -f "./mtg" > /dev/null; then
+    mtproto="https://t.me/proxy?server=${host}&port=${mtpport}&secret=${secret}"
+    echo "生成的 mtproto 链接：$mtproto"
+    echo "启动成功"
+else
+    echo "启动失败，请检查进程"
+    exit 1
+fi
+
+# 询问用户是否启用保活功能
+read -p "是否启用保活功能？（y/n）: " enable_keep_alive
+
+if [[ "$enable_keep_alive" == "y" || "$enable_keep_alive" == "Y" ]]; then
+    # 创建 Keep-alive 脚本
+    cat > "${BASE_DIR}/keep_alive.sh" <<EOL
+#!/bin/bash
+
+# 检查TCP端口是否有进程在监听
+if ! netstat -tuln | grep -q "0.0.0.0:${mtpport}"; then
+    echo "[\$(date)] 端口 ${mtpport} 未监听，尝试重启 mtg。" >> ${KEEP_ALIVE_LOG}
+    cd "${MTG_DIR}"
+    TMPDIR="${MTG_DIR}/" nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${mtpport} ${secret} -c 8192 --prefer-ip="prefer-ipv6" >> ${LOG_FILE} 2>&1 &
+else
+    echo "[\$(date)] mtg 正在运行。" >> ${KEEP_ALIVE_LOG}
+fi
+EOL
+
+    chmod +x "${BASE_DIR}/keep_alive.sh"
+    echo "保活脚本已创建。"
+
+    # 设置定时任务每13分钟执行一次
+    (crontab -l ; echo "*/13 * * * * ${BASE_DIR}/keep_alive.sh") | crontab -
+    echo "定时任务已设置，每13分钟检查一次 mtg 是否在运行。"
+else
+    echo "未启用保活功能。"
+fi
