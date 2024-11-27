@@ -73,7 +73,7 @@ cat > "${MTG_DIR}/keep_alive.sh" <<EOL
 #!/bin/bash
 
 # 检查TCP端口是否有进程在监听
-if ! netstat -tuln | grep -q "0.0.0.0:${mtpport}"; then
+if ! netstat -an | grep -q "0.0.0.0:${mtpport}"; then
     echo "[\$(date)] 端口 ${mtpport} 未监听，尝试重启 mtg。" >> ${KEEP_ALIVE_LOG}
     cd "${MTG_DIR}"
     TMPDIR="${MTG_DIR}/" nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${mtpport} ${secret} -c 8192 --prefer-ip="prefer-ipv6" >> ${LOG_FILE} 2>&1 &
