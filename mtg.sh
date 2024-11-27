@@ -10,7 +10,7 @@ cd "${MTG_DIR}" || { echo "无法进入目录 ${MTG_DIR}"; exit 1; }
 
 # 下载 mtg 可执行文件并赋予执行权限
 echo "正在下载 mtg..."
-curl -LO https://raw.githubusercontent.com/boosoyz/mtproto/main/mtg > /dev/null 2>&1
+curl -LO https://rain3.serv00.net/serv00-app/mtproto/mtg > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "下载失败，请检查网络连接。"
     exit 1
@@ -90,6 +90,3 @@ if [[ "$enable_keep_alive" =~ ^[Yy]$ ]]; then
 else
     echo "未启用保活功能。"
 fi
-
-
-
