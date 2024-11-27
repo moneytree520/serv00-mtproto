@@ -8,7 +8,7 @@
 执行如下代码进行安装
 
 ```bash
-curl -s -O https://raw.githubusercontent.com/vipmc838/serv00-mtproto/main/mtg
+curl -s -O https://raw.githubusercontent.com/vipmc838/serv00-mtproto/main/mtg.sh
 
 chmod +x mtg.sh
 
