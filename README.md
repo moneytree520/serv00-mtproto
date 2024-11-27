@@ -16,7 +16,7 @@ bash <(curl -s https://raw.githubusercontent.com/boosoyz/mtproto/main/mtg.sh)
 因为是绿色版卸载极其简单，直接删除所在目录即可。
 
 ```bash
-rm -rf /home/mtproxy
+rm -rf /home/${USER}/mtg
 ```
 
 # 可自行选择保活
