@@ -32,10 +32,17 @@ if [ -z "$secret" ]; then
 fi
 
 # 让用户手动输入端口，并确保输入是有效的
-read -p "请输入 mtg 使用的端口号: " port
+while true; do
+    read -p "请输入 mtg 使用的端口号 (1024-65535): " port
+    if [[ "$port" =~ ^[0-9]+$ && "$port" -ge 1024 && "$port" -le 65535 ]]; then
+        echo "使用的端口为：$port"
+        break
+    else
+        echo "无效的端口号。请输入一个有效的端口（1024-65535）。"
+    fi
+done
 
 mtpport="$port"
-echo "使用的端口为：$mtpport"
 
 # 创建 config.json 配置文件
 cat > config.json <<EOF
