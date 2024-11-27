@@ -19,9 +19,9 @@ rm -rf /home/mtproxy
 rm -rf /home/mtproxy
 ```
 
-## 开机启动
+# 可自行选择保活
 
-
+设置定时任务每13分钟执行一次
 
 
 ## 引用项目
