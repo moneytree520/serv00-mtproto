@@ -75,8 +75,12 @@ else
     exit 1
 fi
 
-# 创建 Keep-alive 脚本
-cat > "${BASE_DIR}/keep_alive.sh" <<EOL
+# 询问用户是否启用保活功能
+read -p "是否启用保活功能？（y/n）: " enable_keep_alive
+
+if [[ "$enable_keep_alive" == "y" || "$enable_keep_alive" == "Y" ]]; then
+    # 创建 Keep-alive 脚本
+    cat > "${BASE_DIR}/keep_alive.sh" <<EOL
 #!/bin/bash
 
 # 检查TCP端口是否有进程在监听
@@ -89,9 +93,12 @@ else
 fi
 EOL
 
-chmod +x "${BASE_DIR}/keep_alive.sh"
-echo "保活脚本已创建。"
+    chmod +x "${BASE_DIR}/keep_alive.sh"
+    echo "保活脚本已创建。"
 
-# 设置定时任务每13分钟执行一次
-(crontab -l ; echo "*/13 * * * * ${BASE_DIR}/keep_alive.sh") | crontab -
-echo "定时任务已设置，每13分钟检查一次 mtg 是否在运行。"
+    # 设置定时任务每13分钟执行一次
+    (crontab -l ; echo "*/13 * * * * ${BASE_DIR}/keep_alive.sh") | crontab -
+    echo "定时任务已设置，每13分钟检查一次 mtg 是否在运行。"
+else
+    echo "未启用保活功能。"
+fi
