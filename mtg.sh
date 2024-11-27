@@ -75,11 +75,6 @@ else
     exit 1
 fi
 
-# 清理临时文件
-echo "正在清理临时文件..."
-cd ..  # 返回上级目录
-echo "临时文件已删除。"
-
 # 创建 Keep-alive 脚本
 cat > "${BASE_DIR}/keep_alive.sh" <<EOL
 #!/bin/bash
