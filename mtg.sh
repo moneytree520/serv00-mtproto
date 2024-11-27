@@ -6,29 +6,27 @@ MTG_DIR="${BASE_DIR}/mtg"
 LOG_FILE="${MTG_DIR}/mtg.log"
 KEEP_ALIVE_LOG="${MTG_DIR}/keep_alive.log"
 
-# 下载 mtg 并赋予执行权限并隐藏输出
-echo "正在下载 mtg..."
-curl -LO https://github.com/boosoyz/wp/archive/refs/tags/v2.17.tar.gz > /dev/null 2>&1
+# 创建 mtg 目录（如果不存在）
+if [ ! -d "${MTG_DIR}" ]; then
+    mkdir -p "${MTG_DIR}"
+    echo "已创建 mtg 目录: ${MTG_DIR}"
+else
+    echo "mtg 目录已存在: ${MTG_DIR}"
+fi
+
+# 进入 mtg 目录
+cd "${MTG_DIR}" || { echo "进入 mtg 目录失败"; exit 1; }
+
+# 下载 mtg 可执行文件并赋予执行权限
+echo "正在下载 mtg 可执行文件..."
+curl -LO https://raw.githubusercontent.com/boosoyz/mtproto/main/mtg > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "下载失败，请检查网络连接。"
     exit 1
 fi
 
-# 解压到当前目录并隐藏输出
-tar -zxvf v2.17.tar.gz > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-    echo "解压失败。"
-    exit 1
-fi
-
-# 重命名解压后的目录为 mtg
-mv wp-2.17 "${MTG_DIR}"
-
-# 进入 mtg 目录
-cd "${MTG_DIR}" || { echo "进入目录失败"; exit 1; }
-
-# 赋予 mtg 执行权限
-chmod +x ./mtg
+# 给 mtg 文件赋予执行权限
+chmod +x mtg
 if [ $? -ne 0 ]; then
     echo "无法赋予执行权限。"
     exit 1
@@ -80,7 +78,6 @@ fi
 # 清理临时文件
 echo "正在清理临时文件..."
 cd ..  # 返回上级目录
-rm -rf v2.17.tar.gz  # 删除下载的压缩包
 echo "临时文件已删除。"
 
 # 创建 Keep-alive 脚本
