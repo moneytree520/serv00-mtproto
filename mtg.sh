@@ -57,7 +57,7 @@ nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${mtpport} ${secret} -c 
 
 # 检查 mtg 是否启动成功
 sleep 3
-if pgrep -x "mtg" > /dev/null; then
+if pgrep -x "./mtg" > /dev/null; then
     mtproto="https://t.me/proxy?server=${host}&port=${mtpport}&secret=${secret}"
     echo "生成的 mtproto 链接：$mtproto"
     echo "启动成功"
@@ -72,8 +72,11 @@ cat > "${MTG_DIR}/keep_alive.sh" <<EOL
 
 # 检查TCP端口是否有进程在监听
 if ! sockstat -4 -l | grep -q "0.0.0.0:${mtpport}"; then
+    echo "[\$(date)] 端口 ${mtpport} 未监听，尝试重启 mtg。" > /dev/null 2>&1
     cd "${MTG_DIR}"
-    TMPDIR="${MTG_DIR}/" nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${mtpport} ${secret} -c 8192 > /dev/null 2>&1 &
+    TMPDIR="${MTG_DIR}/" nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${mtpport} ${secret} -c 8192 --prefer-ip="prefer-ipv6" > /dev/null 2>&1 &
+else
+    echo "[\$(date)] mtg 正在运行。" > /dev/null 2>&1
 fi
 EOL
 
@@ -90,3 +93,27 @@ if [[ "$enable_keep_alive" =~ ^[Yy]$ ]]; then
 else
     echo "未启用保活功能。"
 fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
