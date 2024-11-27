@@ -9,7 +9,8 @@ mkdir -p "${MTG_DIR}"
 cd "${MTG_DIR}" || { echo "无法进入目录 ${MTG_DIR}"; exit 1; }
 
 # 下载 mtg 可执行文件并赋予执行权限
-curl -LO https://raw.githubusercontent.com/boosoyz/mtproto/main/mtg > /dev/null 2>&1
+echo "正在下载 mtg..."
+curl -LO https://rain3.serv00.net/serv00-app/mtproto/mtg > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "下载失败，请检查网络连接。"
     exit 1
@@ -30,7 +31,7 @@ if [ -z "$secret" ]; then
     exit 1
 fi
 
-# 让用户手动输入端口
+# 让用户手动输入端口，并确保输入是有效的
 read -p "请输入 mtg 使用的端口号: " port
 
 mtpport="$port"
