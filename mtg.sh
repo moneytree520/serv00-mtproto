@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# 获取当前脚本的绝对路径，并设置 mtg 目录
+# 获取当前脚本的绝对路径，并设置 mtg 目录和日志路径
 BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
 MTG_DIR="${BASE_DIR}/mtg"
+KEEP_ALIVE_LOG="${MTG_DIR}/keep_alive.log"
 
 # 创建 mtg 目录
 mkdir -p "${MTG_DIR}"
@@ -93,27 +94,3 @@ if [[ "$enable_keep_alive" =~ ^[Yy]$ ]]; then
 else
     echo "未启用保活功能。"
 fi
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
