@@ -12,7 +12,7 @@ curl -s -O https://raw.githubusercontent.com/boosoyz/mtproto/main/mtg.sh
 
 chmod +x mtg.sh
 
-./mtg.sh)
+./mtg.sh
 ```
 
 ## 卸载安装
