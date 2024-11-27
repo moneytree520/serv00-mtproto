@@ -6,26 +6,19 @@ MTG_DIR="${BASE_DIR}/mtg"
 LOG_FILE="${MTG_DIR}/mtg.log"
 KEEP_ALIVE_LOG="${MTG_DIR}/keep_alive.log"
 
-# 创建 mtg 目录（如果不存在）
-if [ ! -d "${MTG_DIR}" ]; then
-    mkdir -p "${MTG_DIR}"
-    echo "已创建 mtg 目录: ${MTG_DIR}"
-else
-    echo "mtg 目录已存在: ${MTG_DIR}"
-fi
-
-# 进入 mtg 目录
-cd "${MTG_DIR}" || { echo "进入 mtg 目录失败"; exit 1; }
+# 创建 mtg 目录
+mkdir -p "${MTG_DIR}"
+cd "${MTG_DIR}" || { echo "无法进入目录 ${MTG_DIR}"; exit 1; }
 
 # 下载 mtg 可执行文件并赋予执行权限
-echo "正在下载 mtg 可执行文件..."
+echo "正在下载 mtg..."
 curl -LO https://raw.githubusercontent.com/boosoyz/mtproto/refs/heads/main/mtg > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "下载失败，请检查网络连接。"
     exit 1
 fi
 
-# 给 mtg 文件赋予执行权限
+# 赋予执行权限
 chmod +x mtg
 if [ $? -ne 0 ]; then
     echo "无法赋予执行权限。"
@@ -75,12 +68,8 @@ else
     exit 1
 fi
 
-# 询问用户是否启用保活功能
-read -p "是否启用保活功能？（y/n）: " enable_keep_alive
-
-if [[ "$enable_keep_alive" == "y" || "$enable_keep_alive" == "Y" ]]; then
-    # 创建 Keep-alive 脚本
-    cat > "${BASE_DIR}/keep_alive.sh" <<EOL
+# 创建 Keep-alive 脚本
+cat > "${MTG_DIR}/keep_alive.sh" <<EOL
 #!/bin/bash
 
 # 检查TCP端口是否有进程在监听
@@ -93,9 +82,13 @@ else
 fi
 EOL
 
-    chmod +x "${BASE_DIR}/keep_alive.sh"
-    echo "保活脚本已创建。"
+chmod +x "${BASE_DIR}/keep_alive.sh"
+echo "保活脚本已创建。"
 
+# 询问用户是否启用保活功能
+read -p "是否启用保活功能？[y/N]: " enable_keep_alive
+
+if [[ "$enable_keep_alive" =~ ^[Yy]$ ]]; then
     # 设置定时任务每13分钟执行一次
     (crontab -l ; echo "*/13 * * * * ${BASE_DIR}/keep_alive.sh") | crontab -
     echo "定时任务已设置，每13分钟检查一次 mtg 是否在运行。"
