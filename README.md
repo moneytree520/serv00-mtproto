@@ -7,6 +7,9 @@
 
 执行如下代码进行安装
 
+```bash
+rm -rf /home/mtproxy
+```
 
 ## 卸载安装
 
