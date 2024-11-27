@@ -21,6 +21,7 @@ chmod +x mtg.sh
 
 ```bash
 rm -rf /home/${USER}/mtg
+rm -rf /home/${USER}/mtg.sh
 ```
 
 # 可自行选择保活
