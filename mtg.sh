@@ -53,6 +53,15 @@ else
     pushplus_token=$(cat "${MTG_DIR}/pushplus_token.txt")
 fi
 
+# 发送 PushPlus 通知
+send_pushplus_notification() {
+    mtproto="https://t.me/proxy?server=${host}&port=${port}&secret=${secret}"
+    curl -s -X POST "https://pushplus.hxtrip.com/send" \
+        -d "token=${pushplus_token}" \
+        -d "title=MTProto 链接" \
+        -d "content=${mtproto}"
+}
+
 # 创建 config.json 配置文件
 cat > config.json <<EOF
 {
@@ -62,21 +71,13 @@ cat > config.json <<EOF
 }
 EOF
 
-# 发送 PushPlus 通知
-send_pushplus_notification() {
-    mtproto="https://t.me/proxy?server=${host}&port=${port}&secret=${secret}"
-    curl -s -X POST "https://www.pushplus.plus/send" \
-        -d "token=${pushplus_token}" \
-        -d "title=MTProto 链接" \
-        -d "content=MTProto 链接: ${mtproto}"
-}
-
 # 启动 mtg 并在后台运行，完全隐藏输出
 nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${port} ${secret} -c 8192 --prefer-ip="prefer-ipv6" > /dev/null 2>&1 &
 
 # 检查 mtg 是否启动成功
 sleep 3
 if pgrep -x "mtg" > /dev/null; then
+    # 启动成功后，发送 PushPlus 通知
     send_pushplus_notification
     echo "启动成功，mtproto 链接已发送。"
 else
@@ -93,7 +94,7 @@ if ! sockstat -4 -l | grep -q "0.0.0.0:${port}"; then
     cd "${MTG_DIR}"
     TMPDIR="${MTG_DIR}/" nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${port} ${secret} -c 8192 > /dev/null 2>&1 &
     # 发送通知
-    curl -s -X POST "https://www.pushplus.plus/send" \
+    curl -s -X POST "https://pushplus.hxtrip.com/send" \
         -d "token=${pushplus_token}" \
         -d "title=MTProto 进程重启通知" \
         -d "content=MTProto 进程已重启，新的 mtproto 链接：${mtproto}"
