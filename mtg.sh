@@ -68,7 +68,7 @@ send_pushplus_notification() {
     curl -s -X POST "https://www.pushplus.plus/send" \
         -d "token=${pushplus_token}" \
         -d "title=MTProto 链接" \
-        -d "content=${mtproto}"
+        -d "content=MTProto 链接: ${mtproto}"
 }
 
 # 启动 mtg 并在后台运行，完全隐藏输出
