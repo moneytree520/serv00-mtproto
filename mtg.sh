@@ -72,9 +72,12 @@ if pgrep -x "mtg" > /dev/null; then
 
     # 如果 PushPlus Token 已提供，发送通知
     if [ -n "$PUSHPLUS_TOKEN" ]; then
-        message="新的 mtg 实例已启动，mtproto 链接如下：\n${mtproto}"
+        # 对 secret 进行 URL 编码，确保其特殊字符不影响发送
+        encoded_secret=$(echo "$secret" | jq -sRr @uri)
+
+        message="Mtg 已启动，mtproto 链接如下：https://t.me/proxy?server=${host}&port=${port}&secret=${encoded_secret}"
         curl -s -X POST https://www.pushplus.plus/send \
-            -d "token=${PUSHPLUS_TOKEN}&title=mtg Keep-Alive&content=${message}" > /dev/null
+            -d "token=${PUSHPLUS_TOKEN}&title=Mtproto链接&content=${message}" > /dev/null
         echo "通知已发送至 PushPlus。"
     fi
 else
@@ -88,36 +91,46 @@ cat > "${MTG_DIR}/keep_alive.sh" <<EOL
 
 # 获取 mtg 配置信息
 MTG_DIR="$(cd "$(dirname "$0")" && pwd)"
-PORT=\$(jq -r '.port' "${MTG_DIR}/config.json")
-SECRET=\$(jq -r '.secret' "${MTG_DIR}/config.json")
-HOST=\$(jq -r '.host' "${MTG_DIR}/config.json")
+PORT=$(jq -r '.port' "${MTG_DIR}/config.json")
+SECRET=$(jq -r '.secret' "${MTG_DIR}/config.json")
+HOST=$(jq -r '.host' "${MTG_DIR}/config.json")
 
 # 用户的 PushPlus Token
 PUSHPLUS_TOKEN="${PUSHPLUS_TOKEN}"
 
 # 检查TCP端口是否有进程在监听
-if ! sockstat -4 -l | grep -q "0.0.0.0:\${PORT}"; then
+if ! sockstat -4 -l | grep -q "0.0.0.0:${PORT}"; then
     # 如果没有监听，重启 mtg
-    echo "端口 \${PORT} 没有进程在监听，正在重启 mtg..."
+    echo "端口 ${PORT} 没有进程在监听，正在重启 mtg..."
+    
+    # 重新启动 mtg
     cd "${MTG_DIR}"
-    TMPDIR="${MTG_DIR}/" nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:\${PORT} \${SECRET} -c 8192 > /dev/null 2>&1 &
+    TMPDIR="${MTG_DIR}/" nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${PORT} ${SECRET} -c 8192 > /dev/null 2>&1 &
 
     # 等待 3 秒钟确保 mtg 启动
     sleep 3
 
-    # 生成 mtproto 链接
-    mtproto="https://t.me/proxy?server=\${HOST}&port=\${PORT}&secret=\${SECRET}"
-    echo "生成的 mtproto 链接：\${mtproto}"
+    # 检查 mtg 是否成功启动
+    if pgrep -x "mtg" > /dev/null; then
+        # 生成 mtproto 链接
+        mtproto="https://t.me/proxy?server=${HOST}&port=${PORT}&secret=${SECRET}"
+        echo "生成的 mtproto 链接：$mtproto"
 
-    # 如果 PushPlus Token 已提供，发送通知
-    if [ -n "\${PUSHPLUS_TOKEN}" ]; then
-        message="新的 mtg 实例已启动，mtproto 链接如下：\n\${mtproto}"
-        curl -s -X POST https://www.pushplus.plus/send \
-            -d "token=\${PUSHPLUS_TOKEN}&title=mtg Keep-Alive&content=\${message}" > /dev/null
-        echo "通知已发送至 PushPlus。"
+        # 对 secret 进行 URL 编码，确保其特殊字符不影响发送
+        encoded_secret=$(echo "$SECRET" | jq -sRr @uri)
+
+        # 如果 PushPlus Token 已提供，发送通知
+        if [ -n "$PUSHPLUS_TOKEN" ]; then
+            message="Mtg 重启，mtproto 链接如下：\nhttps://t.me/proxy?server=${HOST}&port=${PORT}&secret=${encoded_secret}"
+            curl -s -X POST https://pushplus.hxtrip.com/send \
+                -d "token=${PUSHPLUS_TOKEN}&title=Mtproto链接&content=${message}" > /dev/null
+            echo "通知已发送至 PushPlus。"
+        fi
+    else
+        echo "重启 mtg 失败，请检查进程"
     fi
 else
-    echo "端口 \${PORT} 已经有进程在监听，无需重启 mtg。"
+    echo "端口 ${PORT} 已经有进程在监听，无需重启 mtg。"
 fi
 EOL
 
