@@ -74,9 +74,6 @@ EOF
 # 启动 mtg 并在后台运行，完全隐藏输出
 nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${port} ${secret} -c 8192 --prefer-ip="prefer-ipv6" > /dev/null 2>&1 &
 
-# 在命令行中显示 mtproto 链接
-echo "mtproto 链接：$mtproto"
-
 # 检查 mtg 是否启动成功
 sleep 3
 if pgrep -x "mtg" > /dev/null; then
