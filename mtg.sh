@@ -55,7 +55,7 @@ fi
 
 # 发送 PushPlus 通知
 send_pushplus_notification() {
-    mtproto="https://t.me/proxy?server=${host}&port=${port}&secret="${secret}"
+    mtproto="https://t.me/proxy?server=${host}&port=${port}&secret=${secret}"
     curl -s -X POST "https://www.pushplus.plus/send" \
         -d "token=${pushplus_token}" \
         -d "title=MTProto 链接" \
