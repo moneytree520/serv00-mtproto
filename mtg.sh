@@ -99,10 +99,15 @@ if [[ "$enable_keepalive" =~ ^[Yy]$ ]]; then
     cat > "${MTG_DIR}/keepalive.sh" <<'EOF'
 #!/bin/bash
 
-# 获取主机名、端口和密钥
-PORT=$(jq -r '.port' config.json)   # 从 config.json 中获取端口
-HOST=$(jq -r '.host' config.json)   # 从 config.json 中获取主机名
-SECRET=$(jq -r '.secret' config.json)   # 从 config.json 中获取密钥
+# 获取 mtg 配置信息
+MTG_DIR="$(cd "$(dirname "$0")" && pwd)"
+PORT=$(jq -r '.port' "${MTG_DIR}/config.json")
+SECRET=$(jq -r '.secret' "${MTG_DIR}/config.json")
+HOST=$(jq -r '.host' "${MTG_DIR}/config.json")
+
+# 用户的 PushPlus Token
+PUSHPLUS_TOKEN="${PUSHPLUS_TOKEN}"
+
 
 # 检查 mtg 进程是否存在
 if ! pgrep -x "mtg" > /dev/null; then
@@ -120,16 +125,15 @@ if ! pgrep -x "mtg" > /dev/null; then
     encoded_mtproto=$(echo "$mtproto" | jq -sRr @uri)
     
     # 调试：输出生成的 mtproto 链接，确保它没有被截断
-    echo "生成的 mtproto 链接：$mtproto"
+    echo "生成的 mtproto 链接：$mtproto" > /dev/null 2>&1 &
     echo "生成的编码链接：$encoded_mtproto" > /dev/null 2>&1 &
-
     echo "启动成功"
 
     # 如果 PushPlus Token 已提供，发送通知
     if [ -n "$PUSHPLUS_TOKEN" ]; then
-        message="已重启，链接如下：$encoded_mtproto"
+        message="新的 mtg 实例已启动，Mtproto 链接如下：$encoded_mtproto"
         curl -s -X POST https://www.pushplus.plus/send \
-            -d "token=${PUSHPLUS_TOKEN}&title=MTProxy 代理&content=${message}" > /dev/null
+            -d "token=${PUSHPLUS_TOKEN}&title=Mtproto链接&content=${message}" > /dev/null
         echo "通知已发送至 PushPlus。"
     fi
 else
