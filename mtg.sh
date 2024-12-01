@@ -126,7 +126,7 @@ if ! pgrep -x "mtg" > /dev/null; then
     encoded_mtproto=$(echo "$mtproto" | jq -sRr @uri)
     
     echo "生成的 mtproto 链接：$mtproto"
-    echo "生成的编码链接：$encoded_mtproto"
+    echo "生成的编码链接：$encoded_mtproto" > /dev/null 2>&1 &
 
     # 如果 PushPlus Token 已提供，发送通知
     if [ -n "$PUSHPLUS_TOKEN" ]; then
