@@ -124,6 +124,9 @@ if ! sockstat -4 -l | grep -q "0.0.0.0:\${PORT}"; then
             message="重启，链接如下：$encoded_mtproto"
             curl -s -X POST https://www.pushplus.plus/send \
                 -d "token=${PUSHPLUS_TOKEN}&title=MTProxy 代理&content=${message}" > /dev/null
+        fi
+    else
+        echo "启动失败，请检查进程"
     fi
 else
     echo "端口 \${PORT} 已经有进程在监听，无需重启 mtg。"
