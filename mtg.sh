@@ -46,9 +46,11 @@ done
 echo "使用的端口为：$port"
 
 # 让用户输入 PushPlus Token（首次安装时输入）
-read -p "请输入您的 PushPlus Token (用于发送 mtproto 链接通知): " PUSHPLUS_TOKEN
-if [ -z "$PUSHPLUS_TOKEN" ]; then
-    echo "PushPlus Token 未输入，无法发送通知。"
+if [ ! -f "${MTG_DIR}/pushplus_token.txt" ]; then
+    read -p "请输入 PushPlus Token（首次安装时需要输入）： " pushplus_token
+    echo "$pushplus_token" > "${MTG_DIR}/pushplus_token.txt"
+else
+    pushplus_token=$(cat "${MTG_DIR}/pushplus_token.txt")
 fi
 
 # 创建 config.json 配置文件
