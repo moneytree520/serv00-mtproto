@@ -89,7 +89,10 @@ nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${port} ${secret} -c 819
 # 检查 mtg 是否启动成功
 sleep 3
 if pgrep -x "mtg" > /dev/null; then
+    # 生成完整的 mtproto 链接
     mtproto="https://t.me/proxy?server=${host}&port=${port}&secret=${secret}"
+
+    # 输出完整的 mtproto 链接
     echo "生成的 mtproto 链接：$mtproto"
     echo "启动成功"
 
