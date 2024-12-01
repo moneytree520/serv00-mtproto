@@ -45,11 +45,34 @@ done
 
 echo "使用的端口为：$port"
 
-# 让用户输入 PushPlus Token（首次安装时输入）
-read -p "请输入您的 PushPlus Token (用于发送 mtproto 链接通知): " PUSHPLUS_TOKEN
-if [ -z "$PUSHPLUS_TOKEN" ]; then
-    echo "PushPlus Token 未输入，无法发送通知。"
-fi
+# 让用户选择通知方式
+echo "请选择通知方式:"
+echo "1. Telegram"
+echo "2. PushPlus"
+read -p "请输入选择的通知方式（1 或 2）: " notification_choice
+
+# 根据选择处理通知
+case "$notification_choice" in
+    1)
+        # Telegram通知
+        read -p "请输入您的 Telegram Bot Token: " TELEGRAM_TOKEN
+        read -p "请输入您的 Telegram Chat ID: " TELEGRAM_CHAT_ID
+        if [ -z "$TELEGRAM_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram Token 或 Chat ID 未输入，无法发送 Telegram 通知。"
+        fi
+        ;;
+    2)
+        # PushPlus通知
+        read -p "请输入您的 PushPlus Token (用于发送 mtproto 链接通知): " PUSHPLUS_TOKEN
+        if [ -z "$PUSHPLUS_TOKEN" ]; then
+            echo "PushPlus Token 未输入，无法发送通知。"
+        fi
+        ;;
+    *)
+        echo "无效的选择，默认不发送通知。"
+        notification_choice=""
+        ;;
+esac
 
 # 创建 config.json 配置文件
 cat > config.json <<EOF
@@ -70,12 +93,17 @@ if pgrep -x "mtg" > /dev/null; then
     echo "生成的 mtproto 链接：$mtproto"
     echo "启动成功"
 
-    # 如果 PushPlus Token 已提供，发送通知
-    if [ -n "$PUSHPLUS_TOKEN" ]; then
-        # 对 secret 进行 URL 编码，确保其特殊字符不影响发送
+    # 根据用户选择发送通知
+    if [ "$notification_choice" == "1" ] && [ -n "$TELEGRAM_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+        # 发送 Telegram 通知
+        message="Mtg 已启动，mtproto 链接如下：$mtproto"
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}&text=${message}" > /dev/null
+        echo "通知已发送至 Telegram。"
+    elif [ "$notification_choice" == "2" ] && [ -n "$PUSHPLUS_TOKEN" ]; then
+        # 发送 PushPlus 通知
         encoded_secret=$(echo "$secret" | jq -sRr @uri)
-
-        message="Mtg 已启动，mtproto 链接如下：https://t.me/proxy?server=${host}&port=${port}&secret=${encoded_secret}"
+        message="Mtg 已启动，mtproto 链接如下：\n$mtproto"
         curl -s -X POST https://www.pushplus.plus/send \
             -d "token=${PUSHPLUS_TOKEN}&title=Mtproto链接&content=${message}" > /dev/null
         echo "通知已发送至 PushPlus。"
@@ -121,10 +149,18 @@ if ! sockstat -4 -l | grep -q "0.0.0.0:${PORT}"; then
 
         # 如果 PushPlus Token 已提供，发送通知
         if [ -n "$PUSHPLUS_TOKEN" ]; then
-            message="Mtg 重启，mtproto 链接如下：\nhttps://t.me/proxy?server=${HOST}&port=${PORT}&secret=${encoded_secret}"
+            message="Mtg 重启，mtproto 链接如下：\n$mtproto"
             curl -s -X POST https://pushplus.hxtrip.com/send \
                 -d "token=${PUSHPLUS_TOKEN}&title=Mtproto链接&content=${message}" > /dev/null
             echo "通知已发送至 PushPlus。"
+        fi
+
+        # 如果 Telegram Token 和 Chat ID 已提供，发送通知
+        if [ -n "$TELEGRAM_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            message="Mtg 重启，mtproto 链接如下：$mtproto"
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+                -d "chat_id=${TELEGRAM_CHAT_ID}&text=${message}" > /dev/null
+            echo "通知已发送至 Telegram。"
         fi
     else
         echo "重启 mtg 失败，请检查进程"
@@ -142,8 +178,4 @@ read -p "是否启用保活功能？[y/N]: " enable_keep_alive
 
 if [[ "$enable_keep_alive" =~ ^[Yy]$ ]]; then
     # 设置定时任务每13分钟执行一次
-    (crontab -l 2>/dev/null; echo "*/13 * * * * ${MTG_DIR}/keep_alive.sh") | crontab -
-    echo "定时任务已设置，每13分钟检查一次 mtg 是否在运行。"
-else
-    echo "未启用保活功能。"
-fi
+    (crontab -l 2>/dev/null; echo "*/13 * * * * ${
