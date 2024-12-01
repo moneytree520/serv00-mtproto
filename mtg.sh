@@ -137,8 +137,8 @@ echo "保活脚本已创建并放置在 ${MTG_DIR} 目录中。"
 read -p "是否启用保活功能？[y/N]: " enable_keep_alive
 
 if [[ "$enable_keep_alive" =~ ^[Yy]$ ]]; then
-    # 设置定时任务每13分钟执行一次
-    (crontab -l 2>/dev/null; echo "*/13 * * * * ${MTG_DIR}/keep_alive.sh") | crontab -
+    # 设置定时任务每10分钟执行一次
+    (crontab -l 2>/dev/null; echo "*/10 * * * * ${MTG_DIR}/keep_alive.sh") | crontab -
     echo "定时任务已设置，每13分钟检查一次 mtg 是否在运行。"
 else
     echo "未启用保活功能。"
