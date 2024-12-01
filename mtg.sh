@@ -92,21 +92,24 @@ if pgrep -x "mtg" > /dev/null; then
     # 生成完整的 mtproto 链接
     mtproto="https://t.me/proxy?server=${host}&port=${port}&secret=${secret}"
 
-    # 输出完整的 mtproto 链接
+    # URL 编码 mtproto 链接
+    encoded_mtproto=$(echo "$mtproto" | jq -sRr @uri)
+    
+    # 调试：输出生成的 mtproto 链接，确保它没有被截断
     echo "生成的 mtproto 链接：$mtproto"
+    echo "生成的编码链接：$encoded_mtproto"
     echo "启动成功"
 
     # 根据用户选择发送通知
     if [ "$notification_choice" == "1" ] && [ -n "$TELEGRAM_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
         # 发送 Telegram 通知
-        message="Mtg 已启动，mtproto 链接如下：$mtproto"
+        message="Mtg 已启动，mtproto 链接如下：$encoded_mtproto"
         curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
             -d "chat_id=${TELEGRAM_CHAT_ID}&text=${message}" > /dev/null
         echo "通知已发送至 Telegram。"
     elif [ "$notification_choice" == "2" ] && [ -n "$PUSHPLUS_TOKEN" ]; then
         # 发送 PushPlus 通知
-        encoded_secret=$(echo "$secret" | jq -sRr @uri)
-        message="Mtg 已启动，mtproto 链接如下：\n$mtproto"
+        message="Mtg 已启动，mtproto 链接如下：\n$encoded_mtproto"
         curl -s -X POST https://www.pushplus.plus/send \
             -d "token=${PUSHPLUS_TOKEN}&title=Mtproto链接&content=${message}" > /dev/null
         echo "通知已发送至 PushPlus。"
@@ -115,70 +118,3 @@ else
     echo "启动失败，请检查进程"
     exit 1
 fi
-
-# 创建 Keep-alive 脚本，并将其放到 mtg 目录
-cat > "${MTG_DIR}/keep_alive.sh" <<EOL
-#!/bin/bash
-
-# 获取 mtg 配置信息
-MTG_DIR="$(cd "$(dirname "$0")" && pwd)"
-PORT=$(jq -r '.port' "${MTG_DIR}/config.json")
-SECRET=$(jq -r '.secret' "${MTG_DIR}/config.json")
-HOST=$(jq -r '.host' "${MTG_DIR}/config.json")
-
-# 用户的 PushPlus Token
-PUSHPLUS_TOKEN="${PUSHPLUS_TOKEN}"
-
-# 检查TCP端口是否有进程在监听
-if ! sockstat -4 -l | grep -q "0.0.0.0:${PORT}"; then
-    # 如果没有监听，重启 mtg
-    echo "端口 ${PORT} 没有进程在监听，正在重启 mtg..."
-    
-    # 重新启动 mtg
-    cd "${MTG_DIR}"
-    TMPDIR="${MTG_DIR}/" nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${PORT} ${SECRET} -c 8192 > /dev/null 2>&1 &
-
-    # 等待 3 秒钟确保 mtg 启动
-    sleep 3
-
-    # 检查 mtg 是否成功启动
-    if pgrep -x "mtg" > /dev/null; then
-        # 生成 mtproto 链接
-        mtproto="https://t.me/proxy?server=${HOST}&port=${PORT}&secret=${SECRET}"
-        echo "生成的 mtproto 链接：$mtproto"
-
-        # 对 secret 进行 URL 编码，确保其特殊字符不影响发送
-        encoded_secret=$(echo "$SECRET" | jq -sRr @uri)
-
-        # 如果 PushPlus Token 已提供，发送通知
-        if [ -n "$PUSHPLUS_TOKEN" ]; then
-            message="Mtg 重启，mtproto 链接如下：\n$mtproto"
-            curl -s -X POST https://pushplus.hxtrip.com/send \
-                -d "token=${PUSHPLUS_TOKEN}&title=Mtproto链接&content=${message}" > /dev/null
-            echo "通知已发送至 PushPlus。"
-        fi
-
-        # 如果 Telegram Token 和 Chat ID 已提供，发送通知
-        if [ -n "$TELEGRAM_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
-            message="Mtg 重启，mtproto 链接如下：$mtproto"
-            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
-                -d "chat_id=${TELEGRAM_CHAT_ID}&text=${message}" > /dev/null
-            echo "通知已发送至 Telegram。"
-        fi
-    else
-        echo "重启 mtg 失败，请检查进程"
-    fi
-else
-    echo "端口 ${PORT} 已经有进程在监听，无需重启 mtg。"
-fi
-EOL
-
-chmod +x "${MTG_DIR}/keep_alive.sh"
-echo "保活脚本已创建并放置在 ${MTG_DIR} 目录中。"
-
-# 询问用户是否启用保活功能
-read -p "是否启用保活功能？[y/N]: " enable_keep_alive
-
-if [[ "$enable_keep_alive" =~ ^[Yy]$ ]]; then
-    # 设置定时任务每13分钟执行一次
-    (crontab -l 2>/dev/null; echo "*/13 * * * * ${
