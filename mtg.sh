@@ -74,7 +74,7 @@ if pgrep -x "mtg" > /dev/null; then
     
     # 调试：输出生成的 mtproto 链接，确保它没有被截断
     echo "生成的 mtproto 链接：$mtproto"
-    echo "生成的编码链接：$encoded_mtproto"
+    echo "生成的编码链接：$encoded_mtproto" > /dev/null 2>&1 &
     echo "启动成功"
 
     # 如果 PushPlus Token 已提供，发送通知
@@ -112,18 +112,22 @@ if ! sockstat -4 -l | grep -q "0.0.0.0:\${PORT}"; then
     # 等待 3 秒钟确保 mtg 启动
     sleep 3
 
-    # 生成 mtproto 链接
-    mtproto="https://t.me/proxy?server=\${HOST}&port=\${PORT}&secret=\${SECRET}"
-    echo "生成的 mtproto 链接：\${mtproto}"
+    # 生成完整的 mtproto 链接
+    mtproto="https://t.me/proxy?server=${host}&port=${port}&secret=${secret}"
 
     # URL 编码 mtproto 链接
     encoded_mtproto=$(echo "$mtproto" | jq -sRr @uri)
+    
+    # 调试：输出生成的 mtproto 链接，确保它没有被截断
+    echo "生成的 mtproto 链接：$mtproto" > /dev/null 2>&1 &
+    echo "生成的编码链接：$encoded_mtproto" > /dev/null 2>&1 &
+    echo "启动成功"
 
     # 如果 PushPlus Token 已提供，发送通知
-    if [ -n "\${PUSHPLUS_TOKEN}" ]; then
-        message="新的 mtg 实例已启动，mtproto 链接如下：\n\${mtproto}"
+    if [ -n "$PUSHPLUS_TOKEN" ]; then
+        message="新的 mtg 实例已启动，Mtproto 链接如下：$encoded_mtproto"
         curl -s -X POST https://www.pushplus.plus/send \
-            -d "token=\${PUSHPLUS_TOKEN}&title=mtg Keep-Alive&content=\${message}" > /dev/null
+            -d "token=${PUSHPLUS_TOKEN}&title=Mtproto链接&content=${message}" > /dev/null
         echo "通知已发送至 PushPlus。"
     fi
 else
