@@ -66,15 +66,22 @@ nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${port} ${secret} -c 819
 # 检查 mtg 是否启动成功
 sleep 3
 if pgrep -x "mtg" > /dev/null; then
+    # 生成完整的 mtproto 链接
     mtproto="https://t.me/proxy?server=${host}&port=${port}&secret=${secret}"
+
+    # URL 编码 mtproto 链接
+    encoded_mtproto=$(echo "$mtproto" | jq -sRr @uri)
+    
+    # 调试：输出生成的 mtproto 链接，确保它没有被截断
     echo "生成的 mtproto 链接：$mtproto"
+    echo "生成的编码链接：$encoded_mtproto"
     echo "启动成功"
 
     # 如果 PushPlus Token 已提供，发送通知
     if [ -n "$PUSHPLUS_TOKEN" ]; then
-        message="新的 mtg 实例已启动，mtproto 链接如下：\n${mtproto}"
+        message="新的 mtg 实例已启动，Mtproto 链接如下：$encoded_mtproto"
         curl -s -X POST https://www.pushplus.plus/send \
-            -d "token=${PUSHPLUS_TOKEN}&title=mtg Keep-Alive&content=${message}" > /dev/null
+            -d "token=${PUSHPLUS_TOKEN}&title=Mtproto链接&content=${message}" > /dev/null
         echo "通知已发送至 PushPlus。"
     fi
 else
