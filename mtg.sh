@@ -103,33 +103,35 @@ HOST=$(jq -r '.host' "${MTG_DIR}/config.json")
 PUSHPLUS_TOKEN="${PUSHPLUS_TOKEN}"
 
 # 检查TCP端口是否有进程在监听
-if ! sockstat -4 -l | grep -q "0.0.0.0:\${PORT}"; then
+if ! sockstat -4 -l | grep -q "0.0.0.0:${PORT}"; then
     # 如果没有监听，重启 mtg
+    echo "端口 ${PORT} 没有进程在监听，正在重启 mtg..."
     cd "${MTG_DIR}"
     TMPDIR="${MTG_DIR}/" nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${PORT} ${SECRET} -c 8192 > /dev/null 2>&1 &
 
     # 等待 3 秒钟确保 mtg 启动
     sleep 3
 
-    # 确认 mtg 是否成功启动
-    if sockstat -4 -l | grep -q "0.0.0.0:${PORT}"; then
-        # 生成完整的 mtproto 链接
-        mtproto="https://t.me/proxy?server=${HOST}&port=${PORT}&secret=${SECRET}"
+    # 生成完整的 mtproto 链接
+    mtproto="https://t.me/proxy?server=${HOST}&port=${PORT}&secret=${SECRET}"
 
-        # URL 编码 mtproto 链接
-        encoded_mtproto=$(echo "$mtproto" | jq -sRr @uri)
+    # URL 编码 mtproto 链接
+    encoded_mtproto=$(echo "$mtproto" | jq -sRr @uri)
+    
+    # 调试：输出生成的 mtproto 链接，确保它没有被截断
+    echo "生成的 mtproto 链接：$mtproto"
+    echo "生成的编码链接：$encoded_mtproto"
+    echo "启动成功"
 
-        # 如果 PushPlus Token 已提供，发送通知
-        if [ -n "$PUSHPLUS_TOKEN" ]; then
-            message="重启，链接如下：$encoded_mtproto"
-            curl -s -X POST https://www.pushplus.plus/send \
-                -d "token=${PUSHPLUS_TOKEN}&title=MTProxy 代理&content=${message}" > /dev/null
-        fi
-    else
-        echo "启动失败，请检查进程"
+    # 如果 PushPlus Token 已提供，发送通知
+    if [ -n "$PUSHPLUS_TOKEN" ]; then
+        message="新的 mtg 实例已启动，Mtproto 链接如下：$encoded_mtproto"
+        curl -s -X POST https://www.pushplus.plus/send \
+            -d "token=${PUSHPLUS_TOKEN}&title=Mtproto链接&content=${message}" > /dev/null
+        echo "通知已发送至 PushPlus。"
     fi
 else
-    echo "端口 \${PORT} 已经有进程在监听，无需重启 mtg。"
+    echo "端口 ${PORT} 已经有进程在监听，无需重启 mtg。"
 fi
 EOL
 
