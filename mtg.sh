@@ -75,6 +75,7 @@ if pgrep -x "mtg" > /dev/null; then
     # 调试：输出生成的 mtproto 链接，确保它没有被截断
     echo "生成的 mtproto 链接：$mtproto"
     echo "生成的编码链接：$encoded_mtproto" > /dev/null 2>&1 &
+
     echo "启动成功"
 
     # 如果 PushPlus Token 已提供，发送通知
@@ -89,60 +90,46 @@ else
     exit 1
 fi
 
-# 创建 Keep-alive 脚本，并将其放到 mtg 目录
-cat > "${MTG_DIR}/keep_alive.sh" <<EOL
+# 询问用户是否启用保活功能
+read -p "是否启用保活功能？(y/n): " enable_keepalive
+if [[ "$enable_keepalive" =~ ^[Yy]$ ]]; then
+    echo "启用保活功能..."
+
+    # 创建保活脚本
+    cat > "${MTG_DIR}/keepalive.sh" <<'EOF'
 #!/bin/bash
 
-# 获取 mtg 配置信息
-MTG_DIR="$(cd "$(dirname "$0")" && pwd)"
-PORT=$(jq -r '.port' "${MTG_DIR}/config.json")
-SECRET=$(jq -r '.secret' "${MTG_DIR}/config.json")
-HOST=$(jq -r '.host' "${MTG_DIR}/config.json")
+PORT=$(jq -r '.port' config.json)   # 从 config.json 中获取端口
+HOST=$(jq -r '.host' config.json)   # 从 config.json 中获取主机名
+SECRET=$(jq -r '.secret' config.json)   # 从 config.json 中获取密钥
 
-# 用户的 PushPlus Token
-PUSHPLUS_TOKEN="${PUSHPLUS_TOKEN}"
+# 检查端口是否有进程监听
+if ! ss -tuln | grep ":${PORT} " > /dev/null; then
+    # 如果没有监听进程，重启 mtg
+    echo "未检测到监听进程，正在重启 mtg..."
+    pkill -f mtg   # 终止 mtg 进程
+    nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${PORT} ${SECRET} -c 8192 --prefer-ip="prefer-ipv6" > /dev/null 2>&1 &
+    
+    # 生成新的 mtproto 链接
+    mtproto="https://t.me/proxy?server=${HOST}&port=${PORT}&secret=${SECRET}"
+    encoded_mtproto=$(echo "$mtproto" | jq -sRr @uri)
 
-# 检查TCP端口是否有进程在监听
-if ! sockstat -4 -l | grep -q "0.0.0.0:${PORT}"; then
-    # 如果没有监听，重启 mtg
-    cd "${MTG_DIR}"
-    TMPDIR="${MTG_DIR}/" nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${PORT} ${SECRET} -c 8192 > /dev/null 2>&1 &
-
-    # 等待 3 秒钟确保 mtg 启动
-    sleep 3
-
-    # 确认 mtg 是否成功启动
-    if sockstat -4 -l | grep -q "0.0.0.0:${PORT}"; then
-        # 生成完整的 mtproto 链接
-        mtproto="https://t.me/proxy?server=${HOST}&port=${PORT}&secret=${SECRET}"
-
-        # URL 编码 mtproto 链接
-        encoded_mtproto=$(echo "$mtproto" | jq -sRr @uri)
-
-        # 如果 PushPlus Token 已提供，发送通知
-        if [ -n "$PUSHPLUS_TOKEN" ]; then
-            message="重启，链接如下：$encoded_mtproto"
-            curl -s -X POST https://www.pushplus.plus/send \
-                -d "token=${PUSHPLUS_TOKEN}&title=MTProxy 代理&content=${message}" > /dev/null
-        fi
-    else
-        echo "启动失败，请检查进程"
+    # 发送通知
+    if [ -n "$PUSHPLUS_TOKEN" ]; then
+        message="已重启，链接如下：$encoded_mtproto"
+        curl -s -X POST https://www.pushplus.plus/send \
+            -d "token=${PUSHPLUS_TOKEN}&title=MTProxy 代理&content=${message}" > /dev/null
+        echo "通知已发送至 PushPlus。"
     fi
 else
-    echo "端口 ${PORT} 已经有进程在监听，无需重启 mtg。"
+    echo "端口 ${PORT} 已有进程监听，mtg 无需重启。"
 fi
-EOL
+EOF
 
-chmod +x "${MTG_DIR}/keep_alive.sh"
-echo "保活脚本已创建并放置在 ${MTG_DIR} 目录中。"
+    chmod +x "${MTG_DIR}/keepalive.sh"
 
-# 询问用户是否启用保活功能
-read -p "是否启用保活功能？[y/N]: " enable_keep_alive
+    # 设置定时任务（每10分钟执行一次保活脚本）
+    (crontab -l 2>/dev/null; echo "*/10 * * * * ${MTG_DIR}/keepalive.sh") | crontab -
 
-if [[ "$enable_keep_alive" =~ ^[Yy]$ ]]; then
-    # 设置定时任务每10分钟执行一次
-    (crontab -l 2>/dev/null; echo "*/10 * * * * ${MTG_DIR}/keep_alive.sh") | crontab -
-    echo "定时任务已设置，每10分钟检查一次 mtg 是否在运行。"
-else
-    echo "未启用保活功能。"
+    echo "保活功能已启用，定时任务已设置每10分钟执行一次。"
 fi
