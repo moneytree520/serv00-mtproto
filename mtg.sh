@@ -81,7 +81,7 @@ if pgrep -x "mtg" > /dev/null; then
     if [ -n "$PUSHPLUS_TOKEN" ]; then
         message="已启动，Mtproto 链接如下：$encoded_mtproto"
         curl -s -X POST https://www.pushplus.plus/send \
-            -d "token=${PUSHPLUS_TOKEN}&title=Mtproto&content=${message}" > /dev/null
+            -d "token=${PUSHPLUS_TOKEN}&title=MTProxy 代理&content=${message}" > /dev/null
         echo "通知已发送至 PushPlus。"
     fi
 else
@@ -123,7 +123,7 @@ if ! sockstat -4 -l | grep -q "0.0.0.0:\${PORT}"; then
         if [ -n "$PUSHPLUS_TOKEN" ]; then
             message="重启，链接如下：$encoded_mtproto"
             curl -s -X POST https://www.pushplus.plus/send \
-                -d "token=${PUSHPLUS_TOKEN}&title=Mtproto&content=${message}" > /dev/null
+                -d "token=${PUSHPLUS_TOKEN}&title=MTProxy 代理&content=${message}" > /dev/null
     fi
 else
     echo "端口 \${PORT} 已经有进程在监听，无需重启 mtg。"
