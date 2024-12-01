@@ -104,7 +104,7 @@ HOST=$(jq -r '.host' config.json)   # 从 config.json 中获取主机名
 SECRET=$(jq -r '.secret' config.json)   # 从 config.json 中获取密钥
 
 # 检查端口是否有进程监听
-if ! ss -tuln | grep ":${PORT} " > /dev/null; then
+if ! sockstat -4 -l | grep ":${PORT} " > /dev/null; then
     # 如果没有监听进程，重启 mtg
     echo "未检测到监听进程，正在重启 mtg..."
     pkill -f mtg   # 终止 mtg 进程
