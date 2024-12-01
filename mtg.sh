@@ -103,7 +103,7 @@ HOST=$(jq -r '.host' "${MTG_DIR}/config.json")
 PUSHPLUS_TOKEN="${PUSHPLUS_TOKEN}"
 
 # 检查TCP端口是否有进程在监听
-if ! sockstat -4 -l | grep -q "0.0.0.0:\${PORT}"; then
+if ! sockstat -4 -l | grep -q "0.0.0.0:${PORT}"; then
     # 如果没有监听，重启 mtg
     cd "${MTG_DIR}"
     TMPDIR="${MTG_DIR}/" nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${PORT} ${SECRET} -c 8192 > /dev/null 2>&1 &
@@ -129,7 +129,7 @@ if ! sockstat -4 -l | grep -q "0.0.0.0:\${PORT}"; then
         echo "启动失败，请检查进程"
     fi
 else
-    echo "端口 \${PORT} 已经有进程在监听，无需重启 mtg。"
+    echo "端口 ${PORT} 已经有进程在监听，无需重启 mtg。"
 fi
 EOL
 
