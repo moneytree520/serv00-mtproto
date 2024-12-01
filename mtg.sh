@@ -113,11 +113,19 @@ if ! pgrep -x "mtg" > /dev/null; then
     # 启动 mtg
     nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${PORT} ${SECRET} -c 8192 --prefer-ip="prefer-ipv6" > /dev/null 2>&1 &
     
-    # 生成新的 mtproto 链接
-    mtproto="https://t.me/proxy?server=${HOST}&port=${PORT}&secret=${SECRET}"
-    encoded_mtproto=$(echo "$mtproto" | jq -sRr @uri)
+    # 生成完整的 mtproto 链接
+    mtproto="https://t.me/proxy?server=${host}&port=${port}&secret=${secret}"
 
-    # 发送通知
+    # URL 编码 mtproto 链接
+    encoded_mtproto=$(echo "$mtproto" | jq -sRr @uri)
+    
+    # 调试：输出生成的 mtproto 链接，确保它没有被截断
+    echo "生成的 mtproto 链接：$mtproto"
+    echo "生成的编码链接：$encoded_mtproto" > /dev/null 2>&1 &
+
+    echo "启动成功"
+
+    # 如果 PushPlus Token 已提供，发送通知
     if [ -n "$PUSHPLUS_TOKEN" ]; then
         message="已重启，链接如下：$encoded_mtproto"
         curl -s -X POST https://www.pushplus.plus/send \
