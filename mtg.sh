@@ -79,9 +79,9 @@ if pgrep -x "mtg" > /dev/null; then
 
     # 如果 PushPlus Token 已提供，发送通知
     if [ -n "$PUSHPLUS_TOKEN" ]; then
-        message="新的 mtg 实例已启动，Mtproto 链接如下：$encoded_mtproto"
+        message="已启动，Mtproto 链接如下：$encoded_mtproto"
         curl -s -X POST https://www.pushplus.plus/send \
-            -d "token=${PUSHPLUS_TOKEN}&title=Mtproto链接&content=${message}" > /dev/null
+            -d "token=${PUSHPLUS_TOKEN}&title=Mtproto&content=${message}" > /dev/null
         echo "通知已发送至 PushPlus。"
     fi
 else
