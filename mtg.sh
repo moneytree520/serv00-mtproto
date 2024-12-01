@@ -99,15 +99,18 @@ if [[ "$enable_keepalive" =~ ^[Yy]$ ]]; then
     cat > "${MTG_DIR}/keepalive.sh" <<'EOF'
 #!/bin/bash
 
+# 获取主机名、端口和密钥
 PORT=$(jq -r '.port' config.json)   # 从 config.json 中获取端口
 HOST=$(jq -r '.host' config.json)   # 从 config.json 中获取主机名
 SECRET=$(jq -r '.secret' config.json)   # 从 config.json 中获取密钥
 
-# 检查端口是否有进程监听
-if ! sockstat -4 -l | grep ":${PORT} " > /dev/null; then
-    # 如果没有监听进程，重启 mtg
-    echo "未检测到监听进程，正在重启 mtg..."
-    pkill -f mtg   # 终止 mtg 进程
+# 检查 mtg 进程是否存在
+if ! pgrep -x "mtg" > /dev/null; then
+    # 如果没有找到 mtg 进程，重启 mtg
+    echo "未检测到 mtg 进程，正在重启 mtg..."
+    pkill -f mtg   # 终止任何 mtg 相关进程（防止残留）
+    
+    # 启动 mtg
     nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${PORT} ${SECRET} -c 8192 --prefer-ip="prefer-ipv6" > /dev/null 2>&1 &
     
     # 生成新的 mtproto 链接
@@ -122,7 +125,7 @@ if ! sockstat -4 -l | grep ":${PORT} " > /dev/null; then
         echo "通知已发送至 PushPlus。"
     fi
 else
-    echo "端口 ${PORT} 已有进程监听，mtg 无需重启。"
+    echo "mtg 进程正在运行，无需重启。"
 fi
 EOF
 
