@@ -94,8 +94,10 @@ if pgrep -x "mtg" > /dev/null; then
 
     # URL 编码 mtproto 链接
     encoded_mtproto=$(echo "$mtproto" | jq -sRr @uri)
-
-    # 启动成功
+    
+    # 调试：输出生成的 mtproto 链接，确保它没有被截断
+    echo "生成的 mtproto 链接：$mtproto"
+    echo "生成的编码链接：$encoded_mtproto"
     echo "启动成功"
 
     # 根据用户选择发送通知
