@@ -45,12 +45,12 @@ done
 
 echo "使用的端口为：$port"
 
-# 让用户输入 PushPlus Token（首次安装时输入）
+# 获取 PushPlus Token
 if [ ! -f "${MTG_DIR}/pushplus_token.txt" ]; then
     read -p "请输入 PushPlus Token（首次安装时需要输入）： " PUSHPLUS_TOKEN
-    echo "$PUSHPLUS_TOKEN" > "${MTG_DIR}/PUSHPLUS_TOKEN.txt"
+    echo "$PUSHPLUS_TOKEN" > "${MTG_DIR}/pushplus_token.txt"
 else
-    pushplus_token=$(cat "${MTG_DIR}/PUSHPLUS_TOKEN.txt")
+    PUSHPLUS_TOKEN=$(cat "${MTG_DIR}/pushplus_token.txt")
 fi
 
 # 创建 config.json 配置文件
@@ -107,9 +107,8 @@ PORT=$(jq -r '.port' "${MTG_DIR}/config.json")
 SECRET=$(jq -r '.secret' "${MTG_DIR}/config.json")
 HOST=$(jq -r '.host' "${MTG_DIR}/config.json")
 
-# 用户的 PushPlus Token
-PUSHPLUS_TOKEN="${PUSHPLUS_TOKEN}"
-
+# 获取 PushPlus Token
+PUSHPLUS_TOKEN=$(cat "${MTG_DIR}/pushplus_token.txt")
 
 # 检查 mtg 进程是否存在
 if ! pgrep -x "mtg" > /dev/null; then
@@ -121,21 +120,19 @@ if ! pgrep -x "mtg" > /dev/null; then
     nohup ./mtg simple-run -n 1.1.1.1 -t 30s -a 1MB 0.0.0.0:${PORT} ${SECRET} -c 8192 --prefer-ip="prefer-ipv6" > /dev/null 2>&1 &
     
     # 生成完整的 mtproto 链接
-    mtproto="https://t.me/proxy?server=${host}&port=${port}&secret=${secret}"
+    mtproto="https://t.me/proxy?server=${HOST}&port=${PORT}&secret=${SECRET}"
 
     # URL 编码 mtproto 链接
     encoded_mtproto=$(echo "$mtproto" | jq -sRr @uri)
     
-    # 调试：输出生成的 mtproto 链接，确保它没有被截断
-    echo "生成的 mtproto 链接：$mtproto" > /dev/null 2>&1 &
-    echo "生成的编码链接：$encoded_mtproto" > /dev/null 2>&1 &
-    echo "启动成功"
+    echo "生成的 mtproto 链接：$mtproto"
+    echo "生成的编码链接：$encoded_mtproto"
 
     # 如果 PushPlus Token 已提供，发送通知
     if [ -n "$PUSHPLUS_TOKEN" ]; then
-        message="新的 mtg 实例已启动，Mtproto 链接如下：$encoded_mtproto"
+        message="已重启，链接如下：$encoded_mtproto"
         curl -s -X POST https://www.pushplus.plus/send \
-            -d "token=${PUSHPLUS_TOKEN}&title=Mtproto链接&content=${message}" > /dev/null
+            -d "token=${PUSHPLUS_TOKEN}&title=MTProxy 代理&content=${message}" > /dev/null
         echo "通知已发送至 PushPlus。"
     fi
 else
@@ -145,8 +142,8 @@ EOF
 
     chmod +x "${MTG_DIR}/keepalive.sh"
 
-    # 设置定时任务（每10分钟执行一次保活脚本）
-    (crontab -l 2>/dev/null; echo "*/10 * * * * ${MTG_DIR}/keepalive.sh") | crontab -
+    # 设置定时任务（每10分钟执行一次保活脚本），并避免重复添加
+    (crontab -l 2>/dev/null | grep -v "${MTG_DIR}/keepalive.sh"; echo "*/10 * * * * ${MTG_DIR}/keepalive.sh") | crontab -
 
     echo "保活功能已启用，定时任务已设置每10分钟执行一次。"
 fi
