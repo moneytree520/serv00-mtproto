@@ -13,11 +13,9 @@
 执行如下代码进行安装
 
 ```bash
-curl -s -O https://raw.githubusercontent.com/vipmc838/serv00-mtproto/main/mtg.sh
+curl -sSL https://raw.githubusercontent.com/moneytree520/serv00-mtproto/main/mtg.sh -o mtg.sh && chmod +x mtg.sh
 
-chmod +x mtg.sh
-
-./mtg.sh
+bash mtg.sh
 ```
 
 ## 卸载安装
